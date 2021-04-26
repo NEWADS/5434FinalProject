@@ -12,6 +12,8 @@ build/
 develop-eggs/
 dist/
 downloads/
+runs/
+results/
 eggs/
 .eggs/
 lib/
@@ -23,6 +25,9 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.npy
+*.npz
+*.csv
 MANIFEST
 
 # PyInstaller
@@ -112,3 +117,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# PyCharm
+.idea/
