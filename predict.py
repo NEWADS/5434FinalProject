@@ -5,32 +5,20 @@ import numpy as np
 
 from tqdm import tqdm
 from datetime import datetime
-from torch.utils.data import Dataset, DataLoader, random_split
-from main_torch import SequenceDataset, create_logger
+from torch.utils.data import DataLoader
+from utils.data import *
+from utils.evaluation import *
 from models.neural_networks import *
-from sklearn.metrics import accuracy_score, f1_score
+
+path = './runs/Tobesubmit/Apr17_10-23-58_LAPTOP-JG1P610P/config.npy'
+model_dict = np.load(path)
 
 DEVICE = 'cuda:0'
 TIME = datetime.now().strftime('%b%d_%H-%M-%S')
-ONE_HOT = False
+ONE_HOT = model_dict['one_hot']
 LAYERS = [8, 16, 32, 64]
 BATCH_SIZE = 512
 MODEL_DICT = 'runs\\Apr17_21-24-48_node5\\GRU_epoch_30.pt'
-
-
-def evaluation(x: np.ndarray, y: np.ndarray):
-    # return overall accuracy, accuracy of each class, macro F1_score based on input variables.
-    # please note that is function should be performed on the whole dataset level.
-    # x and y should has a consistent shape.
-    x_0, y_0 = x[np.where(y == 0)[0]], y[np.where(y == 0)[0]]
-    x_1, y_1 = x[np.where(y == 1)[0]], y[np.where(y == 1)[0]]
-    x_2, y_2 = x[np.where(y == 2)[0]], y[np.where(y == 2)[0]]
-    acc_0 = accuracy_score(y_0, x_0)
-    acc_1 = accuracy_score(y_1, x_1)
-    acc_2 = accuracy_score(y_2, x_2)
-    acc = accuracy_score(y, x)
-    macro_f1 = f1_score(y, x, average='macro')
-    return [acc_0, acc_1, acc_2, acc, macro_f1]
 
 
 if __name__ == "__main__":

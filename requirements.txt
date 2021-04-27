@@ -1,0 +1,8 @@
+torch==1.7.0
+torchvision
+numpy==1.19.2
+tqdm
+h5py
+scikit-learn
+tensorboard
+pandas
