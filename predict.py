@@ -10,15 +10,19 @@ from utils.data import *
 from utils.evaluation import *
 from models.neural_networks import *
 
-path = './runs/Tobesubmit/Apr17_10-23-58_LAPTOP-JG1P610P/config.npy'
-model_dict = np.load(path)
+path = './runs/gru/Apr28_18-56-20_node4'
+files = os.listdir(path)
+config_path = os.path.join(path, files[np.where(['.npy' in file for file in files])[0][0]])
+model_path = os.path.join(path, files[np.where(['.pt' in file for file in files])[0][0]])
+
+config_dict = np.load(config_path, allow_pickle=True).item()
 
 DEVICE = 'cuda:0'
 TIME = datetime.now().strftime('%b%d_%H-%M-%S')
-ONE_HOT = model_dict['one_hot']
-LAYERS = [8, 16, 32, 64]
-BATCH_SIZE = 512
-MODEL_DICT = 'runs\\Apr17_21-24-48_node5\\GRU_epoch_30.pt'
+ONE_HOT = config_dict['one_hot']
+# LAYERS = [8, 16, 32, 64]
+BATCH_SIZE = config_dict['batch_size']
+# MODEL_DICT = './runs/Apr17_21-24-48_node5/GRU_epoch_30.pt'
 
 
 if __name__ == "__main__":
@@ -28,25 +32,37 @@ if __name__ == "__main__":
     else:
         path = './val_expand.npz'
     val_data = SequenceDataset(x=path, shuffle=False, balanced=False)
-    if not os.path.exists('./results'):
-        os.makedirs('./results')
     if 'cuda' in DEVICE:
         if not torch.cuda.is_available():
             raise ValueError('CUDA specified but not detected.')
         else:
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
-    # model = ANN(layers=LAYERS)
-    # model = ResNet1D(in_channels=4 if ONE_HOT else 1, layers=LAYERS)
-    model = GRU(100, 128, 3)
-    checkpoint = torch.load(MODEL_DICT)
+    if config_dict['model'] == 'gru':
+        model = GRU(config_dict['embedding_dim'], config_dict['hidden_dim'], config_dict['num_layers'], 3,
+                    config_dict['drop_rate'])
+    elif config_dict['model'] == 'resnet':
+        model = ResNet1D(1 if not ONE_HOT else 3,
+                         config_dict['layers'],
+                         3,
+                         config_dict['stages'])
+    elif config_dict['model'] == 'resnet_m':
+        model = ResNet1D_M(1 if not ONE_HOT else 3, config_dict['layers'], 3, config_dict['stages'],
+                           config_dict['kernel_size'], config_dict['padding'], config_dict['drop_rate'])
+    else:
+        model = ANN(config_dict['layers'], 3, config_dict['drop_rate'])
+    checkpoint = torch.load(model_path)
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device=DEVICE)
     model.eval()
-    logger = create_logger('./results/{}_{}_{}.log'.format(TIME, model.__class__.__name__, socket.gethostname()))
+    if not os.path.exists('./results/{}'.format(model.__class__.__name__)):
+        os.makedirs('./results/{}'.format(model.__class__.__name__))
+    logger = create_logger('./results/{}/{}_{}.log'.format(model.__class__.__name__, TIME, socket.gethostname()))
     logger.info(' Config '.center(80, '-'))
     logger.info('%-40s %s\n' % ('Using device', DEVICE))
     logger.info('%-40s %s\n' % ('Evaluated Dataset', DEVICE))
+    logger.info('%-40s %s\n' % ('Model Dict', path))
+    logger.info('%-40s %s\n' % ('Batch Size', BATCH_SIZE))
     logger.info(f'\t{model}')
     logger.info('-' * 80)
     val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
@@ -72,7 +88,7 @@ if __name__ == "__main__":
             pbar.update()
     preds = np.concatenate(preds, axis=0)
     labels = np.concatenate(labels, axis=0)  # debug needed
-    results = evaluation(preds, labels)
+    results = evaluation_metrics(preds, labels)
     logger.info('%-40s %s\n' % ('Accuracy of Class 0', results[0]))
     logger.info('%-40s %s\n' % ('Accuracy of Class 1', results[1]))
     logger.info('%-40s %s\n' % ('Accuracy of Class 2', results[2]))

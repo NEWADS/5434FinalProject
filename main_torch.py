@@ -16,12 +16,12 @@ from utils.evaluation import *
 
 
 config_dict = dict(
-    seed=2,
+    seed=1,
     balanced=True,
     delta_1=2,
     delta_2=2,
-    class_weight=[1, 2, 1],
-    model='resnet_m',
+    class_weight=[2, 1, 1],
+    model='gru',
     # this entry works for ANN and CNN
     layers=[32, 64, 128, 256],
     # these entries work for CNN only
@@ -29,18 +29,18 @@ config_dict = dict(
     kernel_size=5,
     padding=2,
     # these entries work for GRU only
-    embedding_dim=100,
-    hidden_dim=128,
-    num_layers=3,
+    embedding_dim=50,
+    hidden_dim=256,
+    num_layers=2,
     # this entry works for all networks
     drop_rate=0.2,
-    epochs=50,
+    epochs=210,
     # optimizer
-    optim='adam',
-    lr=1e-04,
+    optim='sgd',
+    lr=1e-03,
     decay=True,
-    batch_size=1024,
-    one_hot=True,
+    batch_size=1750,
+    one_hot=False,
 )
 
 SEED = config_dict['seed']
@@ -152,7 +152,7 @@ if __name__ == "__main__":
         with tqdm(total=train_data.__len__(), desc=f'Epoch {epoch}/{EPOCH}', unit='seqs') as pbar:
             for batch in train_loader:
                 features = batch['feature'].to(device=DEVICE)
-                if isinstance(model, GRU):
+                if isinstance(model, GRU) or config_dict['model'] == 'gru':
                     features = features.long()
                 labels = batch['label'].to(device=DEVICE)
 
@@ -175,7 +175,7 @@ if __name__ == "__main__":
             if DECAY:
                 scheduler.step()
                 writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], epoch)
-        if not epoch % 4 or epoch == EPOCH:
+        if not epoch % 3 or epoch == EPOCH:
             mean_acc_0, mean_acc_1, mean_acc_2 = eval_net(model, val_loader, DEVICE)
             logger.info('Validation Accuracy of class 0 for epoch {}: {}'.format(epoch, mean_acc_0))
             logger.info('Validation Accuracy of class 1 for epoch {}: {}'.format(epoch, mean_acc_1))
